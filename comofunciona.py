@@ -614,13 +614,23 @@ def cortar_voz(fuente_voz, n):
         if len(voz_idx) == 0:
             sys.exit('No encontré voz en la grabación.')
         primero, ultimo = voz_idx[0], voz_idx[-1]
-        tramos = [(a, b) for a, b in tramos if a > primero and b < ultimo and (b - a) * 0.02 >= 0.6]
-        if len(tramos) < n - 1:
-            sys.exit(f'Encontré {len(tramos) + 1} bloques de voz y hacen falta {n}. '
+        tramos = [(a, b) for a, b in tramos if a > primero and b < ultimo and (b - a) * 0.02 >= 0.25]
+        # Une "pausa · respiración · pausa" en un solo hueco (así separan párrafos
+        # las voces de ElevenLabs y también las personas al cambiar de idea).
+        unidos = []
+        for a, b in tramos:
+            if unidos and (a - unidos[-1][1]) * 0.02 < 0.6:
+                unidos[-1] = (unidos[-1][0], b)
+            else:
+                unidos.append((a, b))
+        if len(unidos) < n - 1:
+            sys.exit(f'Encontré {len(unidos) + 1} bloques de voz y hacen falta {n}. '
                      'Deja una pausa de 2 segundos entre escena y escena.')
-        cortes = sorted(sorted(tramos, key=lambda ab: ab[1] - ab[0], reverse=True)[:n - 1])
-        bordes = [0] + [((a + b) // 2) * v for a, b in cortes] + [len(x)]
-        trozos = [recortar(x[bordes[k]:bordes[k + 1]]) for k in range(n)]
+        cortes = sorted(sorted(unidos, key=lambda ab: ab[1] - ab[0], reverse=True)[:n - 1])
+        inicios = [0] + [b * v for a, b in cortes]
+        finales = [a * v for a, b in cortes] + [len(x)]
+        trozos = [recortar(x[inicios[k]:finales[k]]) for k in range(n)]
+        print('  cortes de voz (s):', ', '.join(f'{a * 0.02:.2f}–{b * 0.02:.2f}' for a, b in cortes))
     pico = max(float(np.abs(t).max()) for t in trozos) or 1.0
     return [t * (0.89 / pico) for t in trozos]
 

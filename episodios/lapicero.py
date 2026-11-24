@@ -92,13 +92,13 @@ def d_portada(lz, t):
 
 def d_piezas(lz, t):
     cx, cy = 600, 790
-    sep = suave(aparece(t, 3.0, 0.6)) * 55
-    et = (aparece(t, .3, .7), aparece(t, 1.0, .7), aparece(t, 1.6, .7), aparece(t, 2.3, .7))
+    sep = suave(aparece(t, 1.4, 0.6)) * 55
+    et = (aparece(t, .1, .5), aparece(t, .4, .5), aparece(t, .7, .5), aparece(t, 1.0, .5))
     lapicero(lz, cx, cy, 0.9, 0, etapas=et, cap_dy=-sep / 0.9)
-    lz.etiqueta('capuchón', (860, 420), (690, 480 - sep), aparece(t, 3.3, .7), 40, curva=-.25)
-    lz.etiqueta('cuerpo', (395, 640), (540, 680), aparece(t, 3.8, .7), 40, curva=.25)
-    lz.etiqueta('carga\nde tinta', (850, 780), (615, 840), aparece(t, 4.3, .7), 40, curva=-.2)
-    lz.etiqueta('punta +\nbolita', (850, 1080), (614, 1137), aparece(t, 4.8, .7), 40, curva=.2)
+    lz.etiqueta('capuchón', (860, 420), (690, 480 - sep), aparece(t, 1.5, .7), 40, curva=-.25)
+    lz.etiqueta('cuerpo', (395, 640), (540, 680), aparece(t, 2.0, .7), 40, curva=.25)
+    lz.etiqueta('carga\nde tinta', (850, 780), (615, 840), aparece(t, 2.6, .7), 40, curva=-.2)
+    lz.etiqueta('punta +\nbolita', (850, 1080), (614, 1137), aparece(t, 3.3, .7), 40, curva=.2)
 
 
 def d_bolita(lz, t):
@@ -280,7 +280,7 @@ ESCENAS = [
     dict(tipo='piezas', titulo='4 piezas clave', dur=7.0, dibujo=d_piezas,
          texto='Tiene 4 piezas: *capuchón*, *cuerpo*, *carga de tinta* y una *punta con bolita*.',
          monigote=dict(apunta=(520, 640)),
-         sonidos=[(3.3, 'pop'), (3.8, 'pop'), (4.3, 'pop'), (4.8, 'pop')]),
+         sonidos=[(1.5, 'pop'), (2.0, 'pop'), (2.6, 'pop'), (3.3, 'pop')]),
     dict(tipo='paso', titulo='La bolita', dur=6.5, dibujo=d_bolita,
          texto='En la punta hay una *bolita de metal* de 1 mm o menos. Puede *girar*, pero no salirse.',
          monigote=dict(apunta=(480, 800), expresion='sorpresa'), sonidos=[(2.6, 'pop'), (3.6, 'pop')]),
