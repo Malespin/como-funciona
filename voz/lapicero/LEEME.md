@@ -1,0 +1,3 @@
+Sube aquí tu grabación del lapicero (Add file → Upload files).
+Sirve un solo audio con 2 s de pausa entre escenas, o un audio por escena llamado 1, 2, 3…
+Formatos: m4a, mp3, ogg/opus (WhatsApp), wav, o incluso un video .mp4/.mov.

@@ -1,0 +1,6 @@
+render/
+fotos/
+__pycache__/
+*.tmp.mp4
+guion_*.md
+/*.mp4
