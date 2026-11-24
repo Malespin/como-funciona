@@ -6,7 +6,8 @@
 3. **Sube** la grabación a `voz/<episodio>/` desde GitHub (Add file → Upload files) y pulsa *Commit*.
 4. GitHub fabrica el video solo (pestaña **Actions**, tarda unos 3–5 min) y lo guarda en `videos/<episodio>.mp4`.
    Cada escena dura lo que dura tu voz, la boca del monigote sigue tu volumen y el subtítulo avanza al ritmo de tu lectura.
-5. Para rehacer un video sin cambiar nada: Actions → *Hacer video* → *Run workflow* → escribe el nombre del episodio.
+5. **Para YouTube:** en `publicacion/<episodio>.md` están el título, la descripción y las etiquetas, listos para copiar. En `miniaturas/<episodio>.png` está la miniatura (1080×1920). Para definirlos tú, agrega `YOUTUBE = dict(titulo=..., descripcion=..., etiquetas=[...])` y `MINIATURA_EXTRA` en el episodio.
+6. Para rehacer un video sin cambiar nada: Actions → *Hacer video* → *Run workflow* → escribe el nombre del episodio.
 
 Si subes un episodio nuevo sin voz, sale `videos/<episodio>_sin_voz.mp4` con un ritmo pausado (`RITMO = 1.35`).
 

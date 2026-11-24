@@ -32,6 +32,7 @@ def main():
         print(f'\n=== {ep} ===', flush=True)
         subprocess.run([sys.executable, 'comofunciona.py', f'episodios/{ep}.py', '--guion'], check=True)
         os.replace(f'guion_{ep}.md', f'guiones/{ep}.md')
+        subprocess.run([sys.executable, 'comofunciona.py', f'episodios/{ep}.py', '--youtube'], check=True)
         carpeta = f'voz/{ep}'
         audios = [f for f in os.listdir(carpeta)] if os.path.isdir(carpeta) else []
         audios = [f for f in audios if f.lower().endswith(AUDIO)]

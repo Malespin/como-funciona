@@ -776,6 +776,45 @@ def cargar_episodio(ruta):
     return mod
 
 
+def escribir_publicacion(ep, nombre, ruta):
+    """Título, descripción y etiquetas para YouTube (listos para copiar y pegar)."""
+    yt = getattr(ep, 'YOUTUBE', {})
+    objeto = ep.TITULO.lower()
+    titulo = yt.get('titulo', f'¿Cómo funciona {objeto}? Explicado con monigotes #shorts')
+    pasos = [e.get('titulo') for e in ep.ESCENAS if e.get('tipo', 'paso') == 'paso']
+    desc = yt.get('descripcion') or (
+        f'¿Alguna vez te preguntaste cómo funciona {objeto}? Te lo explico en menos de un minuto, '
+        'con dibujos sencillos.\n\n' + '\n'.join(f'{i}. {p}' for i, p in enumerate(pasos, 1)) +
+        '\n\n💬 ¿Qué quieres que explique ahora? Déjalo en los comentarios.\n\n#Shorts #CómoFunciona #Ciencia')
+    etiquetas = yt.get('etiquetas', [f'cómo funciona {objeto}', objeto, 'cómo funciona', 'explicado fácil',
+                                     'ciencia', 'shorts educativos'])
+    L = ['# Publicación en YouTube', '', '## Título', '', titulo, '', f'({len(titulo)} caracteres; máximo 100)', '',
+         '## Descripción', '', desc, '', '## Etiquetas', '', ', '.join(etiquetas), '',
+         f'({len(", ".join(etiquetas))} caracteres; máximo 500)', '',
+         '## Miniatura', '', f'`miniaturas/{nombre}.png` (1080×1920). En YouTube Studio en la computadora: '
+         'Contenido → Shorts → lápiz → Miniatura → Subir archivo.', '']
+    with open(ruta, 'w') as fh:
+        fh.write('\n'.join(L))
+
+
+def dibujar_miniatura(ep, ruta):
+    """Portada sin subtítulo, todo ya dibujado, monigote sorprendido."""
+    fondo = crear_fondo()
+    esc = dict(ep.ESCENAS[0])
+    lz = Lienzo(fondo, 0)
+    capas_fijas(lz, ep, 0, esc, 20)
+    esc['dibujo'](lz, 20)
+    m = dict(esc.get('monigote', {}))
+    m['expresion'] = 'sorpresa'
+    x = m.pop('x', 175)
+    pies = m.pop('pies', 1245)
+    monigote(lz, x, pies, 0.8, **m)
+    extra = getattr(ep, 'MINIATURA_EXTRA', 'EXPLICADO FÁCIL')
+    if extra:
+        insignia(lz, extra, 540, 1380, C['rojo'], 1, 64, -0.04, C['blanco'])
+    lz.img.reduce(S).save(ruta)
+
+
 def escribir_guion(ep, nombre, ruta):
     """Guion para grabar: el texto de cada escena, sin asteriscos."""
     L = [f'# Guion — ¿Cómo funciona {ep.TITULO.lower()}?', '',
@@ -797,10 +836,18 @@ def main():
     ap.add_argument('--fotos', nargs='*', help='escena:segundo, ej. 2:3.5')
     ap.add_argument('--escenas', help='solo re-renderizar estas, ej. 2,3')
     ap.add_argument('--guion', action='store_true', help='solo escribir el guion para grabar')
+    ap.add_argument('--youtube', action='store_true', help='solo escribir título/descripción/etiquetas y miniatura')
     ap.add_argument('--hilos', type=int, default=os.cpu_count() or 2)
     a = ap.parse_args()
     ep = cargar_episodio(a.episodio)
     nombre = os.path.splitext(os.path.basename(a.episodio))[0]
+    if a.youtube:
+        os.makedirs('publicacion', exist_ok=True)
+        os.makedirs('miniaturas', exist_ok=True)
+        escribir_publicacion(ep, nombre, f'publicacion/{nombre}.md')
+        dibujar_miniatura(ep, f'miniaturas/{nombre}.png')
+        print(f'publicacion/{nombre}.md  miniaturas/{nombre}.png')
+        return
     if a.guion:
         ruta = f'guion_{nombre}.md'
         escribir_guion(ep, nombre, ruta)
