@@ -498,8 +498,10 @@ def subtitulo(lz, txt, t, ini=0.3, vel=26, y_top=1290, revelar=None):
         for j, (w, hl, wl) in enumerate(l):
             n = int(max(0, min(len(w), visibles - cuenta)))
             if hl and n > 0:
-                ext = esp if (j + 1 < len(l) and l[j + 1][1]) else 0
-                lz.resaltado(x - 6, y + 14, x + wl * (n / len(w)) + 6 + ext * (n == len(w)),
+                limpia = w.rstrip('.,:;!?…¡¿)')
+                wl_hl = lz.d.textlength(limpia, font=f) / S if limpia else wl
+                ext = esp if (j + 1 < len(l) and l[j + 1][1] and limpia == w) else 0
+                lz.resaltado(x - 6, y + 14, x + min(wl * (n / len(w)), wl_hl) + 6 + ext * (n == len(w)),
                              y + lh - 4)
             if n > 0:
                 lz.d.text((x * S, (y + lh / 2 + 4) * S), w[:n], font=f, fill=C['tinta'], anchor='lm')
@@ -514,11 +516,15 @@ def capas_fijas(lz, ep, i, esc, t):
         p1 = aparece(t, 0.05, 0.45)
         insignia(lz, getattr(ep, 'SERIE', 'CÓMO FUNCIONA'), 540, 230, C['amarillo'], p1, 46)
         titulo = esc.get('titulo', ep.TITULO)
-        tam = 112 if len(titulo) <= 12 else 92
-        lz.texto('¿CÓMO FUNCIONA', 540, 360, 74, C['tinta'], p=aparece(t, 0.3, 0.5))
+        lineas = titulo.split('\n')
+        largo = max(len(l) for l in lineas)
+        tam = 112 if largo <= 12 else 92 if largo <= 16 else 78
+        varias = len(lineas) > 1
+        lz.texto('¿CÓMO FUNCIONA', 540, 345 if varias else 360, 74, C['tinta'], p=aparece(t, 0.3, 0.5))
         pt = rebote(aparece(t, 0.6, 0.5))
         if pt > 0:
-            lz.texto(titulo + '?', 540, 470, tam * (0.6 + 0.4 * pt), C['azul'])
+            y = 470 + (len(lineas) - 1) * tam * 0.62
+            lz.texto(titulo + '?', 540, y, tam * (0.6 + 0.4 * pt), C['azul'])
         else:
             lz.k += 1
     else:
@@ -779,7 +785,7 @@ def cargar_episodio(ruta):
 def escribir_publicacion(ep, nombre, ruta):
     """Título, descripción y etiquetas para YouTube (listos para copiar y pegar)."""
     yt = getattr(ep, 'YOUTUBE', {})
-    objeto = ep.TITULO.lower()
+    objeto = ep.TITULO.replace('\n', ' ').lower()
     titulo = yt.get('titulo', f'¿Cómo funciona {objeto}? Explicado con monigotes #shorts')
     pasos = [e.get('titulo') for e in ep.ESCENAS if e.get('tipo', 'paso') == 'paso']
     desc = yt.get('descripcion') or (
@@ -803,7 +809,7 @@ def dibujar_miniatura(ep, ruta):
     esc = dict(ep.ESCENAS[0])
     lz = Lienzo(fondo, 0)
     capas_fijas(lz, ep, 0, esc, 20)
-    esc['dibujo'](lz, 20)
+    esc['dibujo'](lz, getattr(ep, 'MINIATURA_T', 20))   # segundo de la portada que se usa
     m = dict(esc.get('monigote', {}))
     m['expresion'] = 'sorpresa'
     x = m.pop('x', 175)
@@ -817,7 +823,7 @@ def dibujar_miniatura(ep, ruta):
 
 def escribir_guion(ep, nombre, ruta):
     """Guion para grabar: el texto de cada escena, sin asteriscos."""
-    L = [f'# Guion — ¿Cómo funciona {ep.TITULO.lower()}?', '',
+    L = [f"# Guion — ¿Cómo funciona {ep.TITULO.replace(chr(10), ' ').lower()}?", '',
          'Lee cada bloque tranquilo y deja **2 segundos de silencio** entre uno y otro',
          '(o graba un audio por escena: 1, 2, 3…).', '']
     for i, e in enumerate(ep.ESCENAS, 1):
