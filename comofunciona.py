@@ -589,7 +589,68 @@ def recortar(x):
     return x[a:b]
 
 
-def cortar_voz(fuente_voz, n):
+def largo_hablado(txt):
+    """Aproxima cuánto se tarda en decir un texto (en sílabas; los números cuentan más)."""
+    import re
+    txt = txt.replace('*', '')
+    txt = re.sub(r'\d[\d,.]*', lambda m: 'ba ' * (2 * len(re.sub(r'\D', '', m.group())) + 1), txt)
+    # sílabas ≈ grupos de vocales
+    silabas = len(re.findall(r'[aeiouáéíóúü]+', txt.lower()))
+    pausas = 1.5 * len(re.findall(r'[,:;…]', txt)) + 2.0 * len(re.findall(r'[.?!]+', txt))
+    return max(1, silabas + pausas)
+
+
+CORTES_MANUALES = None   # lista de segundos; la llena --cortes
+
+
+def elegir_cortes(huecos, voz, n, textos=None):
+    """Elige n-1 pausas para cortar. Busca la combinación que mejor reparte la voz
+    según el largo de cada párrafo, y prefiere las pausas largas (respiración entre párrafos)."""
+    if CORTES_MANUALES:
+        if len(CORTES_MANUALES) != n - 1:
+            sys.exit(f'--cortes necesita {n - 1} tiempos.')
+        return [min(huecos, key=lambda ab: abs(ab[0] * 0.02 - c)) for c in CORTES_MANUALES]
+    acum = np.cumsum(voz) * 0.02
+    total = acum[-1]
+    pos = [acum[a] for a, b in huecos]
+    largo = [min((b - a) * 0.02, 1.6) for a, b in huecos]
+    m = len(huecos)
+    if textos and len(textos) == n:
+        sil = np.array([largo_hablado(t) for t in textos], dtype=float)
+        esperado = sil / sil.sum() * total          # segundos de voz esperados por escena
+    else:
+        esperado = None
+
+    def costo_tramo(k, ini, fin):
+        """Escena k va de 'ini' a 'fin' (segundos de voz)."""
+        if esperado is None:
+            return 0.0
+        d = max(fin - ini, 0.2)
+        return 4.0 * math.log(d / esperado[k]) ** 2
+
+    INF = float('inf')
+    # dp[k][j]: mejor costo con el corte k (fin de la escena k) en el hueco j
+    dp = [[INF] * m for _ in range(n - 1)]
+    prev = [[-1] * m for _ in range(n - 1)]
+    for j in range(m):
+        dp[0][j] = costo_tramo(0, 0, pos[j]) - 0.9 * largo[j]
+    for k in range(1, n - 1):
+        for j in range(k, m):
+            for i in range(k - 1, j):
+                if dp[k - 1][i] == INF:
+                    continue
+                c = dp[k - 1][i] + costo_tramo(k, pos[i], pos[j]) - 0.9 * largo[j]
+                if c < dp[k][j]:
+                    dp[k][j], prev[k][j] = c, i
+    j = min(range(m), key=lambda q: dp[n - 2][q] + costo_tramo(n - 1, pos[q], total))
+    elegidos = []
+    for k in range(n - 2, -1, -1):
+        elegidos.append(huecos[j])
+        j = prev[k][j]
+    return sorted(elegidos)
+
+
+def cortar_voz(fuente_voz, n, textos=None):
     """Devuelve n trozos de voz, uno por escena.
     - Carpeta: un archivo por escena, en orden (1.m4a, 2.m4a… o como se ordenen por nombre).
     - Un solo archivo: se corta por las pausas más largas (deja ~2 s de silencio entre escenas)."""
@@ -599,7 +660,7 @@ def cortar_voz(fuente_voz, n):
         arch = [f for f in os.listdir(fuente_voz) if f.lower().endswith(ext)]
         arch.sort(key=lambda s: [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)])
         if len(arch) == 1:
-            return cortar_voz(os.path.join(fuente_voz, arch[0]), n)
+            return cortar_voz(os.path.join(fuente_voz, arch[0]), n, textos)
         if len(arch) != n:
             sys.exit(f'La carpeta {fuente_voz} tiene {len(arch)} audios y el episodio tiene {n} escenas.')
         trozos = [recortar(leer_audio(os.path.join(fuente_voz, a))) for a in arch]
@@ -632,7 +693,7 @@ def cortar_voz(fuente_voz, n):
         if len(unidos) < n - 1:
             sys.exit(f'Encontré {len(unidos) + 1} bloques de voz y hacen falta {n}. '
                      'Deja una pausa de 2 segundos entre escena y escena.')
-        cortes = sorted(sorted(unidos, key=lambda ab: ab[1] - ab[0], reverse=True)[:n - 1])
+        cortes = elegir_cortes(unidos, ~silencio, n, textos)
         inicios = [0] + [b * v for a, b in cortes]
         finales = [a * v for a, b in cortes] + [len(x)]
         trozos = [recortar(x[inicios[k]:finales[k]]) for k in range(n)]
@@ -653,7 +714,8 @@ def envolvente(x):
 def planificar(ep, carpeta, fuente_voz=None):
     """Calcula la duración real de cada escena (y guarda la voz cortada)."""
     plan = []
-    trozos = cortar_voz(fuente_voz, len(ep.ESCENAS)) if fuente_voz else None
+    textos = [e.get('locucion', e.get('texto', '')) for e in ep.ESCENAS]
+    trozos = cortar_voz(fuente_voz, len(ep.ESCENAS), textos) if fuente_voz else None
     for i, e in enumerate(ep.ESCENAS):
         base = e['dur']
         if trozos is not None:
@@ -827,7 +889,7 @@ def escribir_guion(ep, nombre, ruta):
          'Lee cada bloque tranquilo y deja **2 segundos de silencio** entre uno y otro',
          '(o graba un audio por escena: 1, 2, 3…).', '']
     for i, e in enumerate(ep.ESCENAS, 1):
-        txt = e.get('texto', '').replace('*', '')
+        txt = e.get('locucion', e.get('texto', '')).replace('*', '')
         seg = len(txt.split()) / 2.4
         L += [f'**{i}. {e.get("titulo") or "Portada"}**  (~{seg:.0f} s)', '', txt, '']
     with open(ruta, 'w') as fh:
@@ -839,12 +901,16 @@ def main():
     ap.add_argument('episodio')
     ap.add_argument('--voz', help='grabación: un archivo con pausas, o una carpeta con un audio por escena')
     ap.add_argument('--salida')
+    ap.add_argument('--cortes', help='segundos donde cortar la voz, ej. 4.7,10.8,16 (opcional)')
     ap.add_argument('--fotos', nargs='*', help='escena:segundo, ej. 2:3.5')
     ap.add_argument('--escenas', help='solo re-renderizar estas, ej. 2,3')
     ap.add_argument('--guion', action='store_true', help='solo escribir el guion para grabar')
     ap.add_argument('--youtube', action='store_true', help='solo escribir título/descripción/etiquetas y miniatura')
     ap.add_argument('--hilos', type=int, default=os.cpu_count() or 2)
     a = ap.parse_args()
+    global CORTES_MANUALES
+    if a.cortes:
+        CORTES_MANUALES = [float(c) for c in a.cortes.split(',')]
     ep = cargar_episodio(a.episodio)
     nombre = os.path.splitext(os.path.basename(a.episodio))[0]
     if a.youtube:

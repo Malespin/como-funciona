@@ -31,9 +31,9 @@ Por último, el escape: el pistón sube y saca los gases quemados. ¡Y vuelta a 
 
 La biela y el cigüeñal convierten ese sube y baja en giro, y ese giro mueve las ruedas.
 
-**8. ¡Rapidísimo!**  (~5 s)
+**8. ¡Rapidísimo!**  (~7 s)
 
-A 3,000 rpm, cada cilindro repite estos 4 tiempos 25 veces por segundo.
+A tres mil revoluciones por minuto, cada cilindro repite estos cuatro tiempos veinticinco veces por segundo.
 
 **9. ¿Qué explico ahora?**  (~6 s)
 

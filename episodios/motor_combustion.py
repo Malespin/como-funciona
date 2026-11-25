@@ -411,6 +411,7 @@ ESCENAS = [
          monigote=dict(apunta=(420, 900), x=150), sonidos=[(1.5, 'pop'), (2.6, 'pop')]),
     dict(tipo='dato', titulo='¡Rapidísimo!', dur=7.0, dibujo=d_dato,
          texto='A *3,000 rpm*, cada cilindro repite estos 4 tiempos *25 veces por segundo*.',
+         locucion='A tres mil revoluciones por minuto, cada cilindro repite estos cuatro tiempos veinticinco veces por segundo.',
          monigote=dict(expresion='sorpresa', mira=(600, 700)), sonidos=[(1.3, 'whoosh'), (2.6, 'ding')]),
     dict(tipo='cierre', titulo='¿Qué explico ahora?', dur=6.0, dibujo=d_cierre,
          texto='¿Un *motor de avión*? ¿Un *carro eléctrico*? ¡Déjalo en los comentarios y lo dibujo!',
